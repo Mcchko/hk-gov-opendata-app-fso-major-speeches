@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「財政司司長重要演辭」查詢系統</title>
+    <!-- Awesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+    <!-- 移除 Leaflet CSS -->
+    <style>
+        .element-hidden {
+            display: none !important;
+        }
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            min-height: 100vh;
+            padding: 16px;
+            color: #1f2937;
+        }
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .header h1 {
+            color: #111827;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+        .header .subtitle {
+            color: #6b7280;
+            font-size: 1rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+        /* Form Section */
+        .form-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group label i {
+            color: #283593;
+        }
+        .form-control {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #283593;
+            box-shadow: 0 0 0 3px rgba(40, 53, 147, 0.1);
+        }
+        .search-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+        }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #283593 0%, #1a237e 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+        }
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            transform: translateY(-2px);
+        }
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            height: 600px;
+        }
+        .data-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+            min-height: 0;
+        }
+        /* 移除 map-section */
+        .speech-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+            min-height: 0;
+        }
+        /* Data Section Styles */
+        .data-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .data-header h2 {
+            color: #111827;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .data-header .subtitle {
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .data-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #283593;
+            display: block;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .accordion-container {
+            margin-top: 20px;
+        }
+        .speech-group {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .speech-group:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .date-group-header {
+            background: linear-gradient(135deg, #283593 0%, #1a237e 100%);
+            color: white;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .date-group-header.active {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+        }
+        .date-group-header i {
+            transition: transform 0.3s ease;
+        }
+        .date-group-header.collapsed i {
+            transform: rotate(-90deg);
+        }
+        .date-group-content {
+            padding: 0;
+            background: white;
+        }
+        .speech-item {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .speech-item:last-child {
+            border-bottom: none;
+        }
+        .speech-item:hover {
+            background-color: #f8fafc;
+        }
+        .speech-item.active {
+            background-color: #e8eaf6;
+            border-left: 4px solid #283593;
+        }
+        .speech-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .speech-date {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .speech-description {
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        .speech-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+        .btn-link {
+            background: none;
+            border: none;
+            color: #283593;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+        .btn-link:hover {
+            background-color: #e8eaf6;
+        }
+        .speech-details {
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 0 0 8px 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .speech-content {
+            color: #374151;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+        }
+        .speech-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #283593 0%, #1a237e 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .speech-link:hover {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #283593;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            padding: 20px;
+            margin-top: auto;
+        }
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 3000;
+            animation: slideIn 0.3s ease-out;
+        }
+        .notification.success {
+            background-color: #10b981;
+            color: white;
+        }
+        .notification.error {
+            background-color: #ef4444;
+            color: white;
+        }
+        .notification.info {
+            background-color: #283593;
+            color: white;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+                background: #1a237e;
+            }
+            .container {
+                gap: 16px;
+            }
+            .header {
+                padding: 16px;
+                border-radius: 12px;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .form-section {
+                padding: 20px;
+            }
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+            .data-section, .speech-section {
+                max-height: 400px;
+                min-height: 400px;
+                padding: 15px;
+            }
+            .data-header h2 {
+                font-size: 1.3rem;
+            }
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+        /* Desktop Enhancements */
+        @media (min-width: 1200px) {
+            .data-section, .speech-section {
+                max-height: 65vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>「財政司司長重要演辭」<br/>查詢系統</h1>
+            <p class="subtitle">資訊來源：財政司司長辦公室</p>
+        </header>
+        <section class="form-section">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="searchSpeech">
+                        <i class="fas fa-search"></i>
+                        搜尋演辭
+                    </label>
+                    <div class="search-group">
+                        <input type="text" id="searchSpeech" class="form-control search-input" placeholder="輸入標題或內容關鍵字...">
+                        <button type="button" class="btn btn-primary" onclick="searchSpeeches()">
+                            <i class="fas fa-search"></i>
+                            搜尋
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="loadAllData()">
+                    <i class="fas fa-sync-alt"></i>
+                    載入所有資料
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    <i class="fas fa-redo"></i>
+                    重置
+                </button>
+            </div>
+        </section>
+        <main class="main-content">
+            <section class="data-section">
+                <div class="data-header">
+                    <h2>演辭列表</h2>
+                    <p class="subtitle">點擊演辭查看更多詳細資訊</p>
+                </div>
+                <div class="data-stats">
+                    <div class="stat-item">
+                        <span id="total-speeches" class="stat-value">0</span>
+                        <span class="stat-label">演辭總數</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="date-groups" class="stat-value">0</span>
+                        <span class="stat-label">日期分組</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="last-update" class="stat-value">-</span>
+                        <span class="stat-label">最後更新</span>
+                    </div>
+                </div>
+                <div class="accordion-container" id="accordion-container">
+                    <div class="no-data">
+                        <i class="fas fa-file-alt"></i>
+                        <p>請點擊「載入所有資料」按鈕開始查詢</p>
+                    </div>
+                </div>
+            </section>
+            <section class="speech-section">
+                <div class="data-header">
+                    <h2>演辭詳情</h2>
+                    <p class="subtitle">選中演辭的完整內容</p>
+                </div>
+                <div id="speech-detail-container" class="speech-details">
+                    <div class="no-data">
+                        <i class="fas fa-file-alt"></i>
+                        <p>請從左側列表選擇一個演辭</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <footer class="footer">
+            <p>「財政司司長重要演辭」查詢系統<br/>資料來源: 財政司司長辦公室</p>
+        </footer>
+    </div>
+    <script>
+        const PROXY_URL = 'https://cors-anywhere.herokuapp.com';
+        const DATA_URL = `https://api.data.gov.hk/v1/fso/majorspeech/search?lang=tc`;
+
+        // IndexedDB 配置
+        const DB_NAME = 'speeches-db';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'speeches';
+        // 全局變量
+        let speechesData = [];
+        let filteredData = [];
+        let db;
+        let activeSpeech = null;
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', function () {
+            initIndexedDB();
+            // 為搜尋輸入框添加 Enter 鍵支援
+            document.getElementById('searchSpeech').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchSpeeches();
+                }
+            });
+        });
+        // 初始化 IndexedDB
+        function initIndexedDB() {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onerror = function(event) {
+                console.error('IndexedDB 初始化失敗:', event.target.error);
+                showNotification('瀏覽器資料庫初始化失敗，將使用在線資料', 'error');
+            };
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                console.log('IndexedDB 初始化成功');
+                checkAndLoadData();
+            };
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    store.createIndex('title', 'title', { unique: false });
+                    store.createIndex('date', 'date', { unique: false });
+                    store.createIndex('formattedDate', 'formattedDate', { unique: false });
+                }
+            };
+        }
+        // 檢查並載入資料
+        function checkAndLoadData() {
+            if (!db) {
+                loadDataFromAPI();
+                return;
+            }
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const countRequest = store.count();
+            countRequest.onsuccess = function(event) {
+                const count = event.target.result;
+                if (count > 0) {
+                    // 從 IndexedDB 載入資料
+                    const getAllRequest = store.getAll();
+                    getAllRequest.onsuccess = function(event) {
+                        speechesData = event.target.result;
+                        filteredData = [...speechesData];
+                        updateStatistics();
+                        updateSpeechList();
+                        showNotification(`已從本地緩存載入 ${count} 筆演辭資料`, 'success');
+                    };
+                    getAllRequest.onerror = function(event) {
+                        console.error('從 IndexedDB 讀取資料失敗:', event.target.error);
+                        loadDataFromAPI();
+                    };
+                } else {
+                    // 從 API 載入資料
+                    loadDataFromAPI();
+                }
+            };
+            countRequest.onerror = function(event) {
+                console.error('檢查 IndexedDB 資料數量失敗:', event.target.error);
+                loadDataFromAPI();
+            };
+        }
+        // 從 API 載入資料
+        async function loadDataFromAPI() {
+            const container = document.getElementById('accordion-container');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在載入演辭資料...</p>
+                </div>
+            `;
+            try {
+                const response = await fetch(`${PROXY_URL}/${DATA_URL}`);
+                if (!response.ok) {
+                    container.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>請先訪問 <a href="${PROXY_URL}" target="_blank">${PROXY_URL}</a></p>
+                            <p style="font-size: 0.9rem; margin-top: 10px;">點擊「Request temporary access to the demo server」按鈕啟用代理伺服器</p>
+                        </div>
+                    `;
+                    showNotification('請啟用 CORS Anywhere 代理伺服器', 'error');
+                    return;
+                }
+                const data = await response.json();
+                speechesData = processSpeechData(data.results || []);
+                // 儲存到 IndexedDB
+                saveToIndexedDB(speechesData);
+                filteredData = [...speechesData];
+                updateStatistics();
+                updateSpeechList();
+                showNotification(`成功載入 ${speechesData.length} 筆演辭資料`, 'success');
+            } catch (error) {
+                console.error('載入資料時出錯:', error);
+                container.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>載入資料時出錯</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+                    </div>
+                `;
+                showNotification('載入資料時出錯，請稍後再試', 'error');
+            }
+        }
+        // 處理演辭資料
+        function processSpeechData(results) {
+            const processedData = [];
+            if (Array.isArray(results)) {
+                results.forEach((speech, index) => {
+                    // 格式化日期從 dd.MM.yyyy 到 yyyy年MM月dd日
+                    let formattedDate = speech.date;
+                    try {
+                        const dateParts = speech.date.split('.');
+                        if (dateParts.length === 3) {
+                            const day = dateParts[0];
+                            const month = dateParts[1];
+                            const year = dateParts[2];
+                            formattedDate = `${year}年${month}月${day}日`;
+                        }
+                    } catch (e) {
+                        console.error('日期格式化錯誤:', e);
+                    }
+                    
+                    const speechItem = {
+                        id: `speech-${index}`,
+                        title: speech.title || '無標題',
+                        link: speech.link || '',
+                        date: speech.date || '',
+                        formattedDate: formattedDate,
+                        description: speech.description || '',
+                        rawDescription: speech.description || ''
+                    };
+                    processedData.push(speechItem);
+                });
+            }
+            return processedData;
+        }
+        // 儲存到 IndexedDB
+        function saveToIndexedDB(data) {
+            if (!db) return;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            // 清空現有資料
+            store.clear();
+            // 儲存新資料
+            data.forEach(item => {
+                store.put(item);
+            });
+            transaction.oncomplete = function() {
+                console.log('資料已儲存到 IndexedDB');
+            };
+            transaction.onerror = function(event) {
+                console.error('儲存到 IndexedDB 失敗:', event.target.error);
+            };
+        }
+        // 重置表單
+        function resetForm() {
+            document.getElementById('searchSpeech').value = '';
+            filteredData = [...speechesData];
+            updateStatistics();
+            updateSpeechList();
+            clearSpeechDetail();
+            showNotification('已重置搜尋條件', 'info');
+        }
+        // 載入所有資料
+        function loadAllData() {
+            if (speechesData.length === 0) {
+                checkAndLoadData();
+            } else {
+                filteredData = [...speechesData];
+                updateStatistics();
+                updateSpeechList();
+                showNotification(`已顯示所有 ${speechesData.length} 筆資料`, 'info');
+            }
+        }
+        // 搜尋演辭
+        function searchSpeeches() {
+            const searchTerm = document.getElementById('searchSpeech').value.trim().toLowerCase();
+            if (!searchTerm) {
+                filteredData = [...speechesData];
+            } else {
+                filteredData = speechesData.filter(speech => {
+                    return speech.title.toLowerCase().includes(searchTerm) ||
+                           speech.rawDescription.toLowerCase().includes(searchTerm);
+                });
+            }
+            updateStatistics();
+            updateSpeechList();
+            clearSpeechDetail();
+            if (filteredData.length === 0) {
+                showNotification('未找到符合搜尋條件的演辭', 'info');
+            } else {
+                showNotification(`找到 ${filteredData.length} 筆符合搜尋條件的演辭`, 'success');
+            }
+        }
+        // 更新統計數據
+        function updateStatistics() {
+            const totalSpeeches = filteredData.length;
+            const uniqueDates = [...new Set(filteredData.map(item => item.formattedDate))].length;
+            const lastUpdate = new Date().toLocaleDateString('zh-Hant', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            document.getElementById('total-speeches').textContent = totalSpeeches;
+            document.getElementById('date-groups').textContent = uniqueDates;
+            document.getElementById('last-update').textContent = lastUpdate;
+        }
+        // 更新演辭列表
+        function updateSpeechList() {
+            const container = document.getElementById('accordion-container');
+            if (filteredData.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-file-alt"></i>
+                        <p>沒有找到演辭資料</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">請嘗試不同的搜尋條件或載入所有資料</p>
+                    </div>
+                `;
+                return;
+            }
+            // 按日期分組
+            const groupedData = {};
+            filteredData.forEach(speech => {
+                const date = speech.formattedDate || '日期不詳';
+                if (!groupedData[date]) {
+                    groupedData[date] = [];
+                }
+                groupedData[date].push(speech);
+            });
+            // 按日期排序（新到舊）
+            const sortedDates = Object.keys(groupedData).sort((a, b) => {
+                const dateA = parseChineseDate(a);
+                const dateB = parseChineseDate(b);
+                return dateB - dateA; // 新到舊
+            });
+            let accordionHTML = '';
+            sortedDates.forEach((date, dateIndex) => {
+                const speeches = groupedData[date];
+                accordionHTML += `
+                    <div class="speech-group">
+                        <div class="date-group-header" onclick="toggleDateGroup(${dateIndex})">
+                            <div>
+                                <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>
+                                <span>${date} (${speeches.length})</span>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div id="date-group-${dateIndex}" class="date-group-content" style="display: none;">
+                `;
+                speeches.forEach((speech, index) => {
+                    const isActive = activeSpeech && activeSpeech.id === speech.id;
+                    accordionHTML += `
+                        <div class="speech-item ${isActive ? 'active' : ''}"
+                             onclick="selectSpeech('${speech.id}')"
+                             data-id="${speech.id}">
+                            <div class="speech-title">${speech.title}</div>
+                            <div class="speech-date">
+                                <i class="far fa-calendar"></i>
+                                ${date}
+                            </div>
+                            <div class="speech-description">${speech.description.substring(0, 200)}...</div>
+                            <div class="speech-actions">
+                                <button class="btn-link" onclick="event.stopPropagation(); selectSpeech('${speech.id}')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    查看詳情
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                accordionHTML += `
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = accordionHTML;
+        }
+        // 解析中文日期
+        function parseChineseDate(dateStr) {
+            try {
+                const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                if (match) {
+                    const year = parseInt(match[1]);
+                    const month = parseInt(match[2]) - 1; // JavaScript 月份從0開始
+                    const day = parseInt(match[3]);
+                    return new Date(year, month, day);
+                }
+            } catch (e) {
+                console.error('日期解析錯誤:', e);
+            }
+            return new Date(0); // 返回最小日期
+        }
+        // 清除演辭詳情
+        function clearSpeechDetail() {
+            const container = document.getElementById('speech-detail-container');
+            container.innerHTML = `
+                <div class="no-data">
+                    <i class="fas fa-file-alt"></i>
+                    <p>請從左側列表選擇一個演辭</p>
+                </div>
+            `;
+            activeSpeech = null;
+        }
+        // 切換日期群組
+        function toggleDateGroup(index) {
+            const content = document.getElementById(`date-group-${index}`);
+            const header = content.previousElementSibling;
+            const icon = header.querySelector('.fa-chevron-down, .fa-chevron-up');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                header.classList.add('active');
+                if (icon) icon.className = 'fas fa-chevron-up';
+            } else {
+                content.style.display = 'none';
+                header.classList.remove('active');
+                if (icon) icon.className = 'fas fa-chevron-down';
+            }
+        }
+        // 選擇演辭
+        function selectSpeech(speechId) {
+            const speech = filteredData.find(s => s.id === speechId);
+            if (!speech) return;
+            // 移除所有活躍狀態
+            document.querySelectorAll('.speech-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // 添加當前活躍狀態
+            const item = document.querySelector(`.speech-item[data-id="${speechId}"]`);
+            if (item) {
+                item.classList.add('active');
+            }
+            // 更新詳情顯示
+            updateSpeechDetail(speech);
+            // 滾動到選中的項目
+            if (item) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            activeSpeech = speech;
+        }
+        // 更新演辭詳情
+        function updateSpeechDetail(speech) {
+            const container = document.getElementById('speech-detail-container');
+            container.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #1a237e; margin-bottom: 10px; font-size: 1.2rem;">${speech.title}</h3>
+                    <div style="color: #6b7280; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <span><i class="far fa-calendar"></i> ${speech.formattedDate}</span>
+                        ${speech.link ? `<a href="${speech.link}" target="_blank" style="color: #283593; text-decoration: none;">
+                            <i class="fas fa-external-link-alt"></i> 查看原文
+                        </a>` : ''}
+                    </div>
+                </div>
+                <div class="speech-content">${speech.rawDescription}</div>
+                ${speech.link ? `
+                    <div style="margin-top: 20px; text-align: center;">
+                        <a href="${speech.link}" target="_blank" class="speech-link">
+                            <i class="fas fa-external-link-alt"></i>
+                            前往原文連結
+                        </a>
+                    </div>
+                ` : ''}
+            `;
+            // 滾動到詳情頂部
+            container.scrollTop = 0;
+        }
+        // 顯示通知
+        function showNotification(message, type = 'info') {
+            // 移除現有通知
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            // 添加到文檔
+            document.body.appendChild(notification);
+            // 3秒後移除
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        // 初始化教程
+        if (!localStorage.getItem('speechTutorialShown')) {
+            setTimeout(() => {
+                alert("歡迎使用「財政司司長重要演辭」查詢系統！\n\n• 點擊「載入所有資料」按鈕下載最新演辭資料\n• 可在搜尋框輸入標題或內容關鍵字進行搜尋\n• 左側列表按日期分組顯示演辭，點擊可查看詳情\n• 右側顯示選中演辭的完整內容\n• 資料會自動緩存在瀏覽器中，下次使用無需重新下載\n• 點擊「查看原文」連結可前往政府新聞公報");
+                localStorage.setItem('speechTutorialShown', 'true');
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
